@@ -1,26 +1,29 @@
 ﻿#include "plant.h"
 #include <conio.h> 
-//#include <dislin/discpp.h>
-
+//#include <discpp.h>
 #include <cmath>
 #include <vector>
 #include <iostream>
 using namespace std;
 using std::vector;
+size_t k = 0;//Количество каналов управления
+vector <int> L;//Номера используемых каналов управления
+double U;//Управляющие воздействия 
+vector <double> X;//Измеряемые значения
+vector <double> Shag;//Шаг для канала управления
+vector <double> Max(2);//Вектор определяющий максимальное воздействие управления
+size_t N = 0;//Число повторений измерений
+size_t M = 0;//Номер датчика, канал опроса
+double x;//Управление средние значение
 
-size_t k = 0;
-vector <int> Out_Channel;
-vector <float> U;
-vector <double> X;
-size_t N = 0;
-int In_Channel = 0;
+//Ввод изначальных данных
 void Vvod() {
     setlocale(LC_ALL, "Russian");
     bool fl = true;
     //Ввод количество каналов управления
     while (fl)
     {
-        cout << "Vvedite kolinchestvo kanalov ypravlenia(1-4)" << "\n";
+        cout << "Введите количество канлов управления(1-4)" << "\n";
         cin >> k;
         if (k < 5 && k > 0)
         {
@@ -28,32 +31,32 @@ void Vvod() {
         }
         else
         {
-            cout << "ERROR nepravilniy diapazon" << "\n";
+            cout << "ERROR" << "\n";
         }
     }
-    Out_Channel.resize(k);
-    U.resize(k);
+    L.resize(k);
+    Shag.resize(k);
     //Ввод использующихся каналов
     for (size_t i = 0; i < k; i++)
     {
         fl = true;
         while (fl)
         {
-            cout << "Vvedite nomer kanala L[" << i << "] dlya ispolzovania(7-10)";
-            cin >> Out_Channel[i];
-            if (Out_Channel[i] < 11 && Out_Channel[i] > 6)
+            cout << "Введите номер канала L[" << i << "] для использования(7-10)" << "\n";
+            cin >> L[i];
+            if (L[i] < 11 && L[i] > 6)
             {
                 fl = false;
             }
             else
             {
-                cout << "ERROR nepravilniy diapazon" << "\n";
+                cout << "ERROR" << "\n";
             }
         }
     }
     fl = true;
     //Ввод числа повторений измерений
-    cout << "Vvedite kol-vo povtoreniy";
+    cout << "Введите количество повторений измерений" << "\n";
     while (fl)
     {
         cin >> N;
@@ -63,7 +66,7 @@ void Vvod() {
         }
         else
         {
-            cout << "ERROR vvedite naturalnoe chislo" << "\n";
+            cout << "ERROR Введите натуральное число" << "\n";
         }
     }
     fl = true;
@@ -71,21 +74,21 @@ void Vvod() {
     //Ввод номера датчика
     while (fl)
     {
-        cout << "Vvedite kanal oprosa (11-90)";
-        cin >> In_Channel;
-        if (In_Channel < 91 && In_Channel >10)
+        cout << "Введитк канал опроса (11-99)" << "\n";
+        cin >> M;
+        if (M < 100 && M >10)
         {
             fl = false;
         }
         else
         {
-            cout << "ERROR nepravilniy diapazon" << "\n";
+            cout << "ERROR" << "\n";
         }
     }
     fl = true;
 
 }
-//Рассчёт среднего значения
+//Рассчёт среднего значения для X по N
 double MiddleSize()
 {
     double s = 0;
@@ -95,205 +98,213 @@ double MiddleSize()
     }
     return(s / N);
 }
+//Запись значений шага на каналы управлений
+void Write_shag(size_t i)
+{
+    setlocale(LC_ALL, "Russian");
+    bool fl = true;
+    while (fl)
+    {
+        switch (L[i])
+        {
+        case 7:
+            cout << "Введите шаг управления (0;70)" << "\n";
+            cin >> Shag[i];
+            if (Shag[i] > 0 && Shag[i] <= 70)
+            {
+                fl = false;
+            }
+            else
+            {
+                cout << "ERROR";
+            }
+            break;
+        case 8:
+            cout << "Введите шаг управления (0;3)" << "\n";
+            cin >> Shag[i];
+            if (Shag[i] > 0 && Shag[i] <= 3)
+            {
+                fl = false;
+            }
+            else
+            {
+                cout << "ERROR";
+            }
+            break;
+        case 9:
+            cout << "Введите шаг управления (0;5)" << "\n";
+            cin >> Shag[i];
+            if (Shag[i] > 0 && Shag[i] <= 5)
+            {
+                fl = false;
+            }
+            else
+            {
+                cout << "ERROR";
+            }
+            break;
+        case 10:
+            cout << "Введите шаг управления (0;2.5)" << "\n";
+            cin >> Shag[i];
+            if (Shag[i] > 0 && Shag[i] <= 2.5)
+            {
+                fl = false;
+            }
+            else
+            {
+                cout << "ERROR";
+            }
+            break;
+        }
+    }
+
+}
+
+void Vivod(size_t i)
+{
+    setlocale(LC_ALL, "Russian");
+    cout << "Канал управления L[" << L[i] << "] | Канал опроса " << M << " | наиболее близкое к 100, управление " << Max[0] << " | значение " << Max[1] << "\n";
+}
 
 
 int main() {
     setlocale(LC_ALL, "Russian");
-    // Инициализация ОУ.
     Plant plant;
     plant_init(plant);
-    /*// Получение экспериментальных данных.
-    const int channel = 64;
-    const size_t steps = 100;
-
-    vector<double> xs(steps);
-    vector<double> ys(steps);
-
-    for (size_t i = 0; i < steps; i++) {
-        xs[i] = i;
-        ys[i] = plant_measure(channel, plant);
-        cout << ys[i] << '\t'; //Вывод результатов измерений в консоль
-    }*/
     Vvod();
     bool check = true;
-    vector <double> shag;
-    shag.resize(k);
     while (check)
     {
-        //Подача значений на каналы управлений
+        //Запись значений шагов на каналы управлений
         for (size_t i = 0; i < k; i++)
         {
-            bool fl = true;
-            while (fl)
-            {
-                switch (Out_Channel[i])
-                {
-                case 7:
-                    cout << "Vvedite shag(0;70), diapozon ypravleniya(-70;70)";
-                    cin >> shag[i];
-                    if (shag[i] >= 1 && shag[i] <= 70)
-                    {
-                        fl = false;
-                    }
-                    else
-                    {
-                        cout << "ERROR nepravilniy diapozon";
-                    }
-                    break;
-                case 8:
-                    cout << "Vvedite shag(0;3), diapozon, ypravlenie(-3;3)";
-                    cin >> shag[i];
-                    if (shag[i] >= 1 && shag[i] <= 3)
-                    {
-                        fl = false;
-                    }
-                    else
-                    {
-                        cout << "ERROR nepravilniy diapozon";
-                    }
-                    break;
-                case 9:
-                    cout << "Vvedite shag(0;5), diapozon ypravlenie(-5;5)";
-                    cin >> shag[i];
-                    if (shag[i] >= 1 && shag[i] <= 5)
-                    {
-                        fl = false;
-                    }
-                    else
-                    {
-                        cout << "ERROR nepravilniy diapozon";
-                    }
-                    break;
-                case 10:
-                    cout << "Vvedite shag(0;2.5), diapozon ypravlenia (-2.5;2.5)";
-                    cin >> shag[i];
-                    if (shag[i] >= 1 && shag[i] <= 2.5)
-                    {
-                        fl = false;
-                    }
-                    else
-                    {
-                        cout << "ERROR nepravilniy diapozon";
-                    }
-                    break;
-                }
-            }
+            Write_shag(i);
         }
-        vector <double> max(2);
+
+        //Подача на объект управляющего воздействия
         for (size_t i = 0; i < k; i++)
         {
-                switch (Out_Channel[i])
+            cout << "Выбран " << L[i]<<" канал управления"<<"\n";
+            switch (L[i])
+            {
+            case 7:
+                Max[0] = -70;
+                plant_control(L[i], -70, plant);
+                for (size_t ism = 0; ism < N; ism++)
                 {
-                case 7:
-                    cout << "Vibran 7 kanal ypravleniya"<<'\n';
-                    plant_control(Out_Channel[i], -70, plant);
-                    for (size_t ism = 0; ism < N; ism++)
-                    {
-                        X[ism] = plant_measure(In_Channel, plant);
-                    }
-                    max[1] = MiddleSize();
-                    cout << "X[" << -70 << "]=" << max[1] << "\n";
-                    max[0]=-70;
-                    for (int ypravlenie = -70+shag[i]; ypravlenie <=70; ypravlenie+=shag[i])
-                    {
-                        plant_control(Out_Channel[i], ypravlenie, plant);
-                      for (size_t ism = 0; ism < N; ism++)
-                        {
-                            plant_control(Out_Channel[i], ypravlenie, plant);
-                            X[ism] = plant_measure(In_Channel, plant);
-                        }
-                        double x = MiddleSize();
-                        cout << "X["<<ypravlenie<<"]=" << x << "\n";
-                        if (abs(100-max[1]) > abs(100-x))
-                        {
-                            max[1] = x;
-                            max[0] = ypravlenie;
-                        }
-                    }
-                    cout <<"kanal ypravleinya 7 | kanal oprosa "<<In_Channel<<" | ypravlenie "<<max[0]<<" | znachenie "<<max[1]<<"\n" ;
-                    break;
-                case 8:
-                    cout << "Vibran 8 kanal ypravleniya" << '\n';
-                    plant_control(Out_Channel[i], -3, plant);
-                    for (size_t ism = 0; ism < N; ism++)
-                    {
-                        X[ism] = plant_measure(In_Channel, plant);
-                    }
-                    max[1] = MiddleSize();
-                    cout << "X[" << -3 << "]=" << max[1] << "\n";
-                    max[0] = -3;
-                    for (int num = -3 + shag[i]; num <= 3; num += shag[i])
-                    {
-                        plant_control(Out_Channel[i], num, plant);
-                        for (size_t ism = 0; ism < N; ism++)
-                        {
-                            X[ism] = plant_measure(In_Channel, plant);
-                        }
-                        double x = MiddleSize();
-                        cout << "X[" << num << "]=" << x << "\n";
-                        if (abs(100 - max[1]) > abs(100 - x))
-                        {
-                            max[1] = x;
-                            max[0] = num;
-                        }
-                    }
-                    cout << "kanal ypravleinya 8 | kanal oprosa " << In_Channel << " | ypravlenie " << max[0] << " | znachenie " << max[1] << "\n";
-                    break;
-                case 9:
-                    cout << "Vibran 9 kanal ypravleniya" << '\n';
-                    plant_control(Out_Channel[i], -5, plant);
-                    for (size_t ism = 0; ism < N; ism++)
-                    {
-                        X[ism] = plant_measure(In_Channel, plant);
-                    }
-                    max[1] = MiddleSize();
-                    cout << "X[" << -5 << "]=" << max[1] << "\n";
-                    max[0] = -5;
-                    for (int num = -5 + shag[i]; num <= 5; num += shag[i])
-                    {
-                        plant_control(Out_Channel[i], num, plant);
-                        for (size_t ism = 0; ism < N; ism++)
-                        {
-                            X[ism] = plant_measure(In_Channel, plant);
-                        }
-                        double x = MiddleSize();
-                        cout << "X[" << num << "]=" << x << "\n";
-                        if (abs(100 - max[1]) > abs(100 - x))
-                        {
-                            max[1] = x;
-                            max[0] = num;
-                        }
-                    }
-                    cout << "kanal ypravleinya 9 | kanal oprosa " << In_Channel << " | ypravlenie " << max[0] << " | znachenie " << max[1] << "\n";                    break;
-                case 10:
-                    cout << "Vibran 10 kanal ypravleniya" << '\n';
-                    plant_control(Out_Channel[i], -2.5, plant);
-                    for (size_t ism = 0; ism < N; ism++)
-                    {
-                        X[ism] = plant_measure(In_Channel, plant);
-                    }
-                    max[1] = MiddleSize();
-                    cout << "X[" << -2.5 << "]=" << max[1] << "\n";
-                    max[0] = -2.5;
-                    for (int num = -2.5 + shag[i]; num <= 2.5; num += shag[i])
-                    {
-                        plant_control(Out_Channel[i], num, plant);
-                        for (size_t ism = 0; ism < N; ism++)
-                        {
-                            X[ism] = plant_measure(In_Channel, plant);
-                        }
-                        double x = MiddleSize();
-                        cout << "X[" << num << "]=" << x << "\n";
-                        if (abs(100 - max[1]) > abs(100 - x))
-                        {
-                            max[1] = x;
-                            max[0] = num;
-                        }
-                    }
-                    cout << "kanal ypravleinya 10 | kanal oprosa " << In_Channel << " | ypravlenie " << max[0] << " | znachenie " << max[1] << "\n";                    break;
+                    X[ism] = plant_measure(M, plant);
+                    
                 }
-        }    
-        cout << "Push '1' if you want to continue or any different key to quit" << "\n";
+                x = MiddleSize();
+                cout << "x[-70]=" << x << "\n";
+                Max[1] = x;
+                for (double U = -70 + Shag[i]; U <= 70; U += Shag[i])
+                {
+                    plant_control(L[i], U, plant);
+                    for (size_t ism = 0; ism < N; ism++)
+                    {
+                        X[ism] = plant_measure(M, plant);
+                        
+                    }
+                    x = MiddleSize();
+                    cout << "x[" << U << "]=" << x << "\n";
+                    if (abs(100 - Max[1]) > abs(100 - x))
+                    {
+                        Max[1] = x;
+                        Max[0] = U;
+                    }
+                }
+                Vivod(i);
+                break;
+            case 8:
+                Max[0] = -3;
+                plant_control(L[i], -3, plant);
+                for (size_t ism = 0; ism < N; ism++)
+                {
+                    X[ism] = plant_measure(M, plant);
+                }
+                x = MiddleSize();
+                cout << "x[-3]=" << x << "\n";
+                Max[1] = x;
+                for (double U = -3 + Shag[i]; U <= 3; U += Shag[i])
+                {
+                    plant_control(L[i], U, plant);
+                    for (size_t ism = 0; ism < N; ism++)
+                    {
+                        X[ism] = plant_measure(M, plant);                       
+                    }
+                    x = MiddleSize();
+                    cout << "x[" << U << "]=" << x << "\n";
+                    if (abs(100 - Max[1]) > abs(100 - x))
+                    {
+                        Max[1] = x;
+                        Max[0] = U;
+                    }
+                }
+                Vivod(i);
+                break;
+            case 9:
+                Max[0] = -5;
+                plant_control(L[i], -5, plant);
+                for (size_t ism = 0; ism < N; ism++)
+                {
+                    X[ism] = plant_measure(M, plant);
+                    
+                }
+                x = MiddleSize();
+                cout << "x[-5]=" << x << "\n";
+                Max[1] = x;
+                for (double U = -5 + Shag[i]; U <= 5; U += Shag[i])
+                {
+                    plant_control(L[i], U, plant);
+                    for (size_t ism = 0; ism < N; ism++)
+                    {
+                        X[ism] = plant_measure(M, plant);
+                        
+                    }
+                    x = MiddleSize();
+                    cout << "x[" << U << "]=" << x << "\n";
+                    if (abs(100 - Max[1]) > abs(100 - x))
+                    {
+                        Max[1] = x;
+                        Max[0] = U;
+                    }
+                }
+                Vivod(i);
+                break;
+            case 10:
+                Max[0] = -2.5;
+                plant_control(L[i], -2.5, plant);
+                for (size_t ism = 0; ism < N; ism++)
+                {
+                    X[ism] = plant_measure(M, plant);
+                }
+                x = MiddleSize();
+                cout << "x[-2.5]=" << x << "\n";
+                Max[1] = x;
+                for (double U = -2.5 + Shag[i]; U <= 2.5; U += Shag[i])
+                {
+                    plant_control(L[i], U, plant);
+                    for (size_t ism = 0; ism < N; ism++)
+                    {
+                        X[ism] = plant_measure(M, plant);     
+                    }
+                    x = MiddleSize();
+                    cout << "x[" << U << "]=" << x << "\n";
+                    if (abs(100 - Max[1]) > abs(100 - x))
+                    {
+                        Max[1] = x;
+                        Max[0] = U;
+                    }
+                }
+                Vivod(i);
+                break;
+            }
+
+            
+        }
+
+        cout << "Нажмите '1' если хотите повторить или что-нибудь другое чтобы выйти" << "\n";
         int C = 0;
         cin >> C;
         if (!(C == 1))
